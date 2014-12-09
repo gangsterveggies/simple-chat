@@ -95,7 +95,7 @@ public class ChatMessage {
         break;
       case BYE:
 	if (pretty) {
-	  output = "Exiting...";
+	  output = "Disconnected... Press enter to exit";
 	} else {
 	  output = "BYE";
 	}

@@ -15,10 +15,11 @@ public class ChatClient {
   JFrame frame = new JFrame("Chat Client");
   private JTextField chatBox = new JTextField();
   private JTextArea chatArea = new JTextArea();
+  private Boolean over = false;
 
   // Socket info
   private SocketChannel clientSocket;
-  private ByteBuffer buffer = ByteBuffer.allocate(16384);
+  private BufferedReader inputReader;
   
   // Decoder and enconder for transmitting text
   private final Charset charset = Charset.forName("UTF8");
@@ -54,13 +55,16 @@ public class ChatClient {
         } finally {
           chatBox.setText("");
         }
+
+        if (over)
+          System.exit(0);
       }
     });
 
     // Socket information
     try {
       clientSocket = SocketChannel.open();
-      clientSocket.configureBlocking(false);
+      clientSocket.configureBlocking(true);
       clientSocket.connect(new InetSocketAddress(server, port));
     } catch (IOException ex) {
     }
@@ -77,38 +81,46 @@ public class ChatClient {
 
   // Processes server input
   public void run() throws IOException {
-    while (!clientSocket.finishConnect()) {
+
+    try {
+      while (!clientSocket.finishConnect()) {
+      }
+    } catch (ConnectException ce) {
+      System.err.println("Unable to establish a connection with the server...");
+      System.exit(0);
+      return;
     }
+
+    inputReader = new BufferedReader(new InputStreamReader(clientSocket.socket().getInputStream()));
     
     // Listen loop
     while (true) {
-      buffer.clear();
-      clientSocket.read(buffer);
-      buffer.flip();
-
-      if (!clientSocket.isConnected()) {
-	break;
-      }
-
-      if (buffer.limit() == 0) {
-        continue;
-      }
-
-      String message = decoder.decode(buffer).toString().trim();
-      printChatMessage(ChatMessage.parseString(message));
-
-      if (message.compareTo("BYE") == 0) {
+      String message = inputReader.readLine();
+      
+      if (message == null) {
         break;
       }
+
+      message = message.trim();
+
+      printChatMessage(ChatMessage.parseString(message));
     }
 
     clientSocket.close();
+
+    try {
+      // To prevent client from closing right away
+      Thread.sleep(10);
+    } catch (InterruptedException ie) {
+    }
+
+    // The connection is over, wait for input to close window
+    over = true;
   }
 
   // Starts the GUI and connections
   public static void main(String[] args) throws IOException {
     ChatClient client = new ChatClient(args[0], Integer.parseInt(args[1]));
     client.run();
-    System.exit(0);
   }
 }

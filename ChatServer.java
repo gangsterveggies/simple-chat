@@ -279,14 +279,15 @@ public class ChatServer {
         roomMap.remove(room.getName());
       }
 
+      sendOkMessage(sender);
       sender.setState(State.OUTSIDE);
     }
   }
 
   // Send bye command
   static private void sendByeCommand(ChatUser sender) throws IOException {
-    closeClient(sender.getSocket());
     sendByeMessage(sender);
+    closeClient(sender.getSocket());
   }
 
     // Send private message
@@ -297,7 +298,7 @@ public class ChatServer {
       if (usernames.containsKey(receiver)) {
         sendOkMessage(sender);
         sendPrivateMessage(usernames.get(receiver), sender.getUsername(), messageValue);
-      } else {
+      } else
         sendErrorMessage(sender, receiver + ": No such nickname online");
       }
     }
