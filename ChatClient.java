@@ -85,7 +85,7 @@ public class ChatClient {
     try {
       while (!clientSocket.finishConnect()) {
       }
-    } catch (ConnectException ce) {
+    } catch (Exception ce) {
       System.err.println("Unable to establish a connection with the server...");
       System.exit(0);
       return;

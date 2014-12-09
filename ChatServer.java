@@ -298,7 +298,7 @@ public class ChatServer {
       if (usernames.containsKey(receiver)) {
         sendOkMessage(sender);
         sendPrivateMessage(usernames.get(receiver), sender.getUsername(), messageValue);
-      } else
+      } else {
         sendErrorMessage(sender, receiver + ": No such nickname online");
       }
     }
