@@ -62,8 +62,6 @@ public class ChatClient {
       clientSocket = SocketChannel.open();
       clientSocket.configureBlocking(false);
       clientSocket.connect(new InetSocketAddress(server, port));
-//      outputStream = new DataOutputStream(clientSocket.getOutputStream());
-//      inputReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
     } catch (IOException ex) {
     }
   }
@@ -73,7 +71,10 @@ public class ChatClient {
     clientSocket.write(encoder.encode(CharBuffer.wrap(message)));
   }
 
-    
+  public void printChatMessage(final ChatMessage message) {
+    printMessage(message.toString(true));
+  }
+
   // Processes server input
   public void run() throws IOException {
     while (!clientSocket.finishConnect()) {
@@ -85,12 +86,16 @@ public class ChatClient {
       clientSocket.read(buffer);
       buffer.flip();
 
+      if (!clientSocket.isConnected()) {
+	break;
+      }
+
       if (buffer.limit() == 0) {
         continue;
       }
 
       String message = decoder.decode(buffer).toString().trim();
-      printMessage(message + "\n");
+      printChatMessage(ChatMessage.parseString(message));
 
       if (message.compareTo("BYE") == 0) {
         break;

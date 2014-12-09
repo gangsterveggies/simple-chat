@@ -111,6 +111,10 @@ public class ChatServer {
       System.err.println("Error closing socket " + s + ": " + ie);
     }
 
+    if (!userMap.containsKey(sc)) {
+      return;
+    }
+
     ChatUser sender = userMap.get(sc);
     if (sender.getState() == State.INSIDE) {
       ChatRoom room = sender.getRoom();
@@ -146,8 +150,8 @@ public class ChatServer {
   }
 
   // Send error message
-  static private void sendErrorMessage(ChatUser receiver) throws IOException {
-    ChatMessage message = new ChatMessage(MessageType.ERROR);
+  static private void sendErrorMessage(ChatUser receiver, String errorMessage) throws IOException {
+    ChatMessage message = new ChatMessage(MessageType.ERROR, errorMessage);
     sendMessage(receiver.getSocket(), message);
   }
 
@@ -197,13 +201,13 @@ public class ChatServer {
         sendMessageMessage(user, sender.getUsername(), messageValue);
       }
     } else {
-      sendErrorMessage(sender);
+      sendErrorMessage(sender, "You are not in a room");
     }
   }
 
   static private void sendNickCommand(ChatUser sender, String nick) throws IOException {
     if (usernames.containsKey(nick)) {
-      sendErrorMessage(sender);
+      sendErrorMessage(sender, "There already is a user with nick " + nick);
     } else {
       if (sender.getState() == State.INIT) {
         sender.setState(State.OUTSIDE);
@@ -229,7 +233,7 @@ public class ChatServer {
 
   static private void sendJoinCommand(ChatUser sender, String roomName) throws IOException {
     if (sender.getState() == State.INIT) {
-      sendErrorMessage(sender);
+      sendErrorMessage(sender, "Authentication required");
     } else {
       if (!roomMap.containsKey(roomName)) {
         roomMap.put(roomName, new ChatRoom(roomName));
@@ -261,7 +265,7 @@ public class ChatServer {
 
   static private void sendLeaveCommand(ChatUser sender) throws IOException {
     if (sender.getState() != State.INSIDE) {
-      sendErrorMessage(sender);
+      sendErrorMessage(sender, "You are not in a room");
     } else {
       ChatRoom room = sender.getRoom();
       room.leftUser(sender);
@@ -281,19 +285,20 @@ public class ChatServer {
 
   // Send bye command
   static private void sendByeCommand(ChatUser sender) throws IOException {
+    closeClient(sender.getSocket());
     sendByeMessage(sender);
   }
 
     // Send private message
   static private void sendPrivateCommand(ChatUser sender, String receiver, String messageValue) throws IOException {
     if (sender.getState() == State.INIT) {
-      sendErrorMessage(sender);
+      sendErrorMessage(sender, "Authentication required");
     } else {
       if (usernames.containsKey(receiver)) {
         sendOkMessage(sender);
         sendPrivateMessage(usernames.get(receiver), sender.getUsername(), messageValue);
       } else {
-        sendErrorMessage(sender);
+        sendErrorMessage(sender, receiver + ": No such nickname online");
       }
     }
   }
@@ -326,8 +331,10 @@ public class ChatServer {
         sendByeCommand(sender);
       } else if (Pattern.matches(privateRegex, command)) {
         sendPrivateCommand(sender, command.split(" ")[1], command.split(" ")[2]);
-      } else {
+      } else if (command.startsWith("/")) {
         sendSimpleMessage(sender, escapedMessage);
+      } else {
+	sendErrorMessage(sender, "Unknown command");
       }
     } else {
       sendSimpleMessage(sender, message);
